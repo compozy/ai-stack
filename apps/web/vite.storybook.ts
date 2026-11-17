@@ -1,0 +1,35 @@
+import tailwindcss from "@tailwindcss/vite";
+import react, { type Options } from "@vitejs/plugin-react";
+import { createRequire } from "node:module";
+import { fileURLToPath, URL } from "node:url";
+import { defineConfig } from "vite";
+
+const app = fileURLToPath(new URL(".", import.meta.url));
+const require = createRequire(import.meta.url);
+const uiRequire = createRequire(require.resolve("@acme/ui/package.json"));
+const baseUiExports = Object.keys(uiRequire("@base-ui/react/package.json").exports);
+
+/**
+ * React Compiler options shared with the production config. It compiles app and Storybook code;
+ * the vendored `@acme/ui` memoizes by hand and is consumed like a library.
+ */
+export const reactOptions: Options = {
+  compiler: { panicThreshold: "all_errors", sources: [`${app}src/`, `${app}.storybook/`] },
+};
+
+/**
+ * Storybook and the story tests render views without the TanStack Start and Nitro plugins:
+ * the same styles, aliases and compiler as production, no server runtime.
+ */
+export default defineConfig({
+  envDir: fileURLToPath(new URL("../..", import.meta.url)),
+  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+  // Base UI belongs to the UI workspace, not this app. Resolve its public entry points there
+  // so browser tests do not re-optimize and reload midway through a cold run.
+  optimizeDeps: {
+    include: baseUiExports
+      .filter(path => /^\.\/[a-z-]+$/.test(path) && path !== "./types" && path !== "./esm")
+      .map(path => `@acme/ui > @base-ui/react${path.slice(1)}`),
+  },
+  plugins: [tailwindcss(), react(reactOptions)],
+});

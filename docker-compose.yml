@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: acme-postgres
+    environment:
+      POSTGRES_USER: acme
+      POSTGRES_PASSWORD: acme
+      POSTGRES_DB: acme
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
+    volumes:
+      - acme-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acme -d acme"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+volumes:
+  acme-pg:

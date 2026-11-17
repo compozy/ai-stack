@@ -1,0 +1,35 @@
+# OS / editor
+.DS_Store
+.tmp/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# build
+node_modules/
+dist/
+.output/
+.nitro/
+.tanstack/
+.vercel/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# .agents/skills is canonical and versioned; .claude/skills is a symlink mirror
+.claude/skills/
+
+# local agent working notes
+.claude/ledger/
+.claude/plans/
+
+# Storybook builds
+storybook-static/
+
+# Vitest browser artifacts
+.vitest/
+
+# platform binaries some vendored skills download at runtime (impeccable's engine)
+.agents/skills/*/scripts/bin/

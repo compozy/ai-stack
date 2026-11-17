@@ -1,0 +1,35 @@
+# Template-only: scaffolds each shape with scripts/create.ts and runs its gate.
+name: Template
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        shape: [start, api]
+    env:
+      HUSKY: "0"
+      GIT_AUTHOR_NAME: ci
+      GIT_AUTHOR_EMAIL: ci@example.com
+      GIT_COMMITTER_NAME: ci
+      GIT_COMMITTER_EMAIL: ci@example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .node-version }
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: .bun-version }
+      - run: bun scripts/create.ts smoke --shape ${{ matrix.shape }} --dir "$RUNNER_TEMP/smoke"
+      - run: bunx playwright install --with-deps chromium
+        working-directory: ${{ runner.temp }}/smoke/apps/${{ matrix.shape == 'start' && 'web' || 'app' }}
+      - run: bun run verify
+        working-directory: ${{ runner.temp }}/smoke
