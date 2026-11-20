@@ -115,10 +115,11 @@ amend.
 
 ## Pull Requests
 
-Write the body from `.github/PULL_REQUEST_TEMPLATE.md` and tick a box only with evidence. Attach UI
-screenshots of the real page on creation (`gh pr create --body-file <body.md> --attach
-'./desktop.png#Alt text'`); `gh pr edit` cannot upload. The PR title is the squash commit and CI
-checks it with commitlint.
+Opening or updating a PR, handling its review or CI, or declaring PR work done: follow
+`pr-delivery`. Write the body from `.github/PULL_REQUEST_TEMPLATE.md` and tick a box only with
+evidence; the `PR body` check enforces the template. UI changes ship screenshots of the real page
+hosted in the R2 evidence bucket through the skill's upload helper, never `gh --attach` or GitHub
+uploads. The PR title is the squash commit and CI checks it with commitlint.
 
 ## Commands and Verification
 
@@ -207,6 +208,7 @@ reads the `.claude/skills` symlinks); origins are in `skills-lock.json`.
 | Library or API docs, web research                | `context7`, `exa-search`                                                         |
 | Diagrams                                         | `mermaid-diagrams`                                                               |
 | Rebasing or cleaning history                     | `git-rebase`                                                                     |
+| Opening a PR, its review or CI, UI screenshots   | `pr-delivery`                                                                    |
 | Claiming a task complete                         | `deslop`                                                                         |
 | Editing CLAUDE.md or a skill                     | `writing-agents-md` / `writing-skills`                                           |
 

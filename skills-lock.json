@@ -190,6 +190,12 @@
       "computedHash": "cfa0c39804554198a33e3beb2b0f920a1b468bb2e066822e1d08f4abeda3db33",
       "commit": "8c99fa36d90068c82d547f7c12a9d67a3e95f4ee"
     },
+    "pr-delivery": {
+      "source": "pedronauck/skills",
+      "sourceType": "github",
+      "skillPath": "skills/mine/pr-delivery/SKILL.md",
+      "computedHash": "cf912c8158fd60ed91980715401b7497772cfb3e3e36688ce2399b8320bf4879"
+    },
     "qa-execution": {
       "source": "pedronauck/skills",
       "sourceType": "github",

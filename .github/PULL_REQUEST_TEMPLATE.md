@@ -1,31 +1,19 @@
-<!--
-Title format: <type>: <description> — type is one of feat | fix | refactor | perf | docs | test | build | ci.
-No scope. The title becomes the squash commit, and CI checks it with commitlint.
-  Good: fix: keep the dialog open after a failed submit
-  Bad:  feat(web): new page · update stuff · fix #123
--->
-
 ## What & why
 
-<!-- What changes for the people using the product, and why. Link the issue if there is one:
-     Fixes #123 -->
+Describe what changes for the people using the product and why, and link the issue (`Fixes #123`)
+or write `No issue: <reason>`.
 
 ## How you verified it
 
-<!-- Commands you ran and what they showed (`bun run verify`, the page in the running app...).
-     If you added no tests, say why. -->
-
-## Screenshots
-
-<!-- Required for UI changes: desktop and mobile width, light and dark.
-     Attach with `gh pr create --attach './shot.png#Alt text'` or drag the files here.
-     Delete this section when nothing visible changed. -->
+Name the commands you ran and what they showed (`bun run verify`, the page in the running app...).
+If you added no tests, say why. For UI changes, include screenshots of the real page at desktop and
+mobile width, light and dark, hosted in the R2 evidence bucket through the `pr-delivery` skill.
 
 ## Impact
 
-<!-- Does this change a public URL or API route, the database schema or a migration, an
-     environment variable, or a theme token? Name which and whether docs need an update.
-     "No impact" is a fine answer — just say it. -->
+Say whether this changes a public URL or API route, the database schema or a migration, an
+environment variable, or a theme token. Name which and whether docs need an update. "No impact" is
+a fine answer; just say it.
 
 ---
 
