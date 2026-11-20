@@ -34,10 +34,17 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           install: "false"
-      # Updates the vendored skills so both scaffolds exercise the default creation path.
-      - run: bun scripts/create.ts smoke --shape "$SHAPE" --dir "$RUNNER_TEMP/smoke"
+      # Invariant: each scaffold starts on main even when Git defaults to another branch.
+      # Owner: scripts/create.ts. Exercise the default creation path, including skill updates.
+      - name: Create the project and verify its initial branch
+        run: |
+          bun scripts/create.ts smoke --shape "$SHAPE" --dir "$RUNNER_TEMP/smoke"
+          test "$(git -C "$RUNNER_TEMP/smoke" symbolic-ref --short HEAD)" = main
         env:
           SHAPE: ${{ matrix.shape }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: init.defaultBranch
+          GIT_CONFIG_VALUE_0: trunk
       - name: Lint the generated CI workflow
         working-directory: ${{ runner.temp }}/smoke
         run: |
