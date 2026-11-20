@@ -192,9 +192,10 @@
     },
     "pr-delivery": {
       "source": "pedronauck/skills",
+      "commit": "8639a61daa456042f02c965adc4b63c565fc6d50",
       "sourceType": "github",
       "skillPath": "skills/mine/pr-delivery/SKILL.md",
-      "computedHash": "cf912c8158fd60ed91980715401b7497772cfb3e3e36688ce2399b8320bf4879"
+      "computedHash": "b7c08519ea51c62792af543350d9cc5de74dca2bad8748aaafd6b0ec7072e050"
     },
     "qa-execution": {
       "source": "pedronauck/skills",
