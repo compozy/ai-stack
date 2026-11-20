@@ -25,6 +25,9 @@ Storybook on 6006.
 - Validate server function input with zod (`.validator`) before it reaches a query.
 - Views live in `src/components` with a story each; routes compose them and own loading, empty
   and error states.
+- `tsr.config.json` repeats the `Register` footer the Start plugin writes, so `tsr generate`
+  (typecheck) and the Vite plugin (dev, build) produce the same `routeTree.gen.ts`. After a Start
+  upgrade, if `verify` leaves that file modified, copy the plugin's new footer into the config.
 
 ## Tests
 
