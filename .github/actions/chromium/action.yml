@@ -21,17 +21,11 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ runner.arch }}-chromium-shell-${{ steps.playwright.outputs.version }}
-    - shell: bash
+    # GitHub's Ubuntu runner image provides Chrome's system libraries.
+    - if: steps.browser-cache.outputs.cache-hit != 'true'
+      shell: bash
       working-directory: ${{ inputs.directory }}
-      env:
-        CACHE_HIT: ${{ steps.browser-cache.outputs.cache-hit }}
-      run: |
-        if ! bunx --no-install playwright install-deps --dry-run chromium; then
-          bunx --no-install playwright install-deps chromium
-        fi
-        if [[ "$CACHE_HIT" != true ]]; then
-          bunx --no-install playwright install --only-shell chromium
-        fi
+      run: bunx --no-install playwright install --only-shell chromium
     - if: >-
         inputs.save-cache == 'true' &&
         github.event_name == 'push' && github.ref_name == github.event.repository.default_branch &&

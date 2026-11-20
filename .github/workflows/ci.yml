@@ -41,7 +41,7 @@ jobs:
       - run: bunx --no-install turbo run codegen:check typecheck build
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     services:
       postgres:
