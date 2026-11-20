@@ -67,9 +67,10 @@ are outward-facing: confirm with the user before each one.
 
 ## Maintaining the template
 
-- The template must always pass its own gate: `bun run verify` here, and the `Template` workflow,
-  which scaffolds both shapes and runs `verify` inside each. Storybook runs web on 6006 and app
-  on 6007.
+- Run `bun run verify` locally when changing the template. GitHub Actions runs the same checks
+  across parallel jobs behind `CI gate`. The separate `Template` workflow scaffolds both shapes,
+  lints each generated CI workflow and runs `bun run verify` inside each project.
+  Storybook runs web on 6006 and app on 6007.
 - Refresh the template's skills before a release with `bun run skills:update` and commit the
   changed folders with the lock, so `--frozen-skills` projects and offline scaffolds are recent.
 - Bump pins in one place per package and keep the workspace on a single version of each.

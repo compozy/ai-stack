@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         shape: [start, api]
     env:
@@ -30,17 +31,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .node-version
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: .bun-version
-      # Pulls every skill's latest version, so a broken upstream skill shows up here first.
+          install: "false"
+      # Updates the vendored skills so both scaffolds exercise the default creation path.
       - run: bun scripts/create.ts smoke --shape "$SHAPE" --dir "$RUNNER_TEMP/smoke"
         env:
           SHAPE: ${{ matrix.shape }}
-      - run: bunx playwright install --with-deps chromium
-        working-directory: ${{ runner.temp }}/smoke/apps/${{ matrix.shape == 'start' && 'web' || 'app' }}
+      - name: Lint the generated CI workflow
+        working-directory: ${{ runner.temp }}/smoke
+        run: |
+          archive="$RUNNER_TEMP/actionlint_1.7.12_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz" \
+            --output "$archive"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint"
+      - uses: ./.github/actions/chromium
+        with:
+          directory: ${{ runner.temp }}/smoke/apps/${{ matrix.shape == 'start' && 'web' || 'app' }}
       - run: bun run verify
         working-directory: ${{ runner.temp }}/smoke
