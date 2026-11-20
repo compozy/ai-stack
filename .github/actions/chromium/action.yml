@@ -26,10 +26,11 @@ runs:
       env:
         CACHE_HIT: ${{ steps.browser-cache.outputs.cache-hit }}
       run: |
-        if [[ "$CACHE_HIT" == true ]]; then
+        if ! bunx --no-install playwright install-deps --dry-run chromium; then
           bunx --no-install playwright install-deps chromium
-        else
-          bunx --no-install playwright install --with-deps --only-shell chromium
+        fi
+        if [[ "$CACHE_HIT" != true ]]; then
+          bunx --no-install playwright install --only-shell chromium
         fi
     - if: >-
         inputs.save-cache == 'true' &&
