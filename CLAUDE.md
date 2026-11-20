@@ -154,8 +154,8 @@ the API routes; `verify` fails when they are stale.
 
 The GitHub Actions `CI gate` requires workflow lint, quality, test and React Doctor jobs to
 pass. Together they run every check in `bun run verify`. The test job starts PostgreSQL and
-installs headless Chromium. CI restores Bun and Chromium caches and publishes them on
-default-branch pushes.
+installs headless Chromium. Keep `main` as the remote default branch so post-merge CI runs
+and publishes Bun and Chromium caches. Pull requests restore those caches.
 
 ## Tests
 

@@ -154,7 +154,7 @@ const env = readFileSync(join(target, ".env.example"), "utf8")
 writeFileSync(join(target, ".env.local"), env);
 
 // 3. Git, shape-only skills, dependencies, formatting and the first commit.
-run(["git", "init", "-q"]);
+run(["git", "init", "-q", "-b", "main"]);
 if (!values["no-skills"]) {
   const removeSkills = SHAPES[shape].removeSkills;
   if (removeSkills.length > 0) run(["npx", "-y", SKILLS_CLI, "remove", ...removeSkills, "-y"]);
