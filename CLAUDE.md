@@ -1,7 +1,29 @@
 # Acme
 
-Bun + Turborepo monorepo. `CLAUDE.md` is canonical; `AGENTS.md` is a symlink made by
-`scripts/postinstall.sh`.
+Bun + Turborepo monorepo, packages scoped `@acme/*` and wired with `workspace:*`. `CLAUDE.md` is
+canonical in every surface; `AGENTS.md` is a symlink made by `scripts/postinstall.sh`.
+
+<!-- <shape:start> -->
+
+| Surface       | Package     | What it is                                              | Instructions            |
+| ------------- | ----------- | ------------------------------------------------------- | ----------------------- |
+| `apps/web`    | `@acme/web` | TanStack Start app: file routes, server functions, auth | `apps/web/CLAUDE.md`    |
+| `packages/db` | `@acme/db`  | Drizzle schema, migrations, client, integration harness | `packages/db/CLAUDE.md` |
+| `packages/ui` | `@acme/ui`  | Vendored shadcn and ReUI components, theme, icons       | `packages/ui/CLAUDE.md` |
+
+<!-- </shape:start> -->
+<!-- <shape:api> -->
+
+| Surface       | Package     | What it is                                              | Instructions            |
+| ------------- | ----------- | ------------------------------------------------------- | ----------------------- |
+| `apps/api`    | `@acme/api` | Hono API with an OpenAPI contract, auth                 | `apps/api/CLAUDE.md`    |
+| `apps/app`    | `@acme/app` | React 19 SPA (Vite, TanStack Router and Query)          | `apps/app/CLAUDE.md`    |
+| `packages/db` | `@acme/db`  | Drizzle schema, migrations, client, integration harness | `packages/db/CLAUDE.md` |
+| `packages/ui` | `@acme/ui`  | Vendored shadcn and ReUI components, theme, icons       | `packages/ui/CLAUDE.md` |
+
+<!-- </shape:api> -->
+
+Read the surface instructions before working there.
 
 ## Stack
 
@@ -25,38 +47,44 @@ Bun + Turborepo monorepo. `CLAUDE.md` is canonical; `AGENTS.md` is a symlink mad
 - `packages/ui`: the UI library, shadcn Base Nova components on Base UI (`components/<name>`) and
   ReUI components (`components/reui/<name>`), installed from their public registries and kept as
   is (`packages/ui/README.md`). Theme tokens in `src/styles/theme.css`; icons from
-  `@acme/ui/lib/icons` (lucide-react). Add components with `bunx shadcn add <name>` or
-  `bunx shadcn add @reui/<name>` from `packages/ui`.
+  `@acme/ui/lib/icons` (lucide-react).
 - Auth: Better Auth (email + password) with the Drizzle adapter. Validation: zod 4.
 - React Compiler is on: never write `memo`, `useMemo` or `useCallback`.
 - React Doctor: `doctor.config.mjs` in each package holds its exceptions, each with its reason;
   `.oxlintrc.json` runs its main rules at edit time; CI comments on PRs and sets a commit status.
-  `packages/ui` ignores the vendored components and hooks (lint skips them too).
 
-## Commands
+## Tripwires
 
-| Command                              | What                                                                                |
-| ------------------------------------ | ----------------------------------------------------------------------------------- |
-| `bun run db:up`                      | Start Postgres (docker compose, port from `.env.local`)                             |
-| `bun run db:generate` / `db:migrate` | Create / apply a migration after a schema change                                    |
-| `bun dev`                            | Every app in watch mode                                                             |
-| `bun run storybook`                  | Storybook of the UI and app views                                                   |
-| `bun run doctor`                     | React Doctor scan of every React package; a warning fails it                        |
-| `bun run verify`                     | Format, lint, doctor, codegen check, typecheck, test, build. The definition of done |
+- **Secrets never touch the repo.** Real values live in `.env.local` (gitignored); never print a
+  secret, refer to env var names. `.env.example` carries every key, empty.
+- **Generated files change only through their generator**: `bun.lock` (`bun install`) and
+  `packages/db/drizzle/*` (`bun run db:generate`).
 
+<!-- <shape:start> -->
+
+- `apps/web/src/routeTree.gen.ts` is written by the router plugin on `dev` and `build`.
+
+<!-- </shape:start> -->
 <!-- <shape:api> -->
 
-`bun run codegen` regenerates `apps/api/openapi.json` and `apps/app/src/generated/api.d.ts` from
-the API routes; `verify` fails when they are stale.
+- `apps/api/openapi.json` and `apps/app/src/generated/api.d.ts` are written by `bun run codegen`.
 
 <!-- </shape:api> -->
 
-Integration tests (`*.it.test.ts`) run only when `TEST_DATABASE_URL` is set; locally use the
-`DATABASE_URL` from `.env.local` (each suite creates and drops its own database). CI sets it.
+- **Skills under `.agents/skills` are vendored** (`skills-lock.json`, synced with `npx skills`).
+  Never hand-edit them; a project-specific skill is a new folder written with `writing-skills`.
+  `.claude/skills` and every `AGENTS.md` are generated by `scripts/postinstall.sh`.
 
-## Rules
+## Working Rules
 
-- Run `bun run verify` before calling work done. Fix the code, never weaken a test.
+- Preserve unrelated work. Destructive Git (`restore`, `checkout`, `reset`, `clean`, `rm`,
+  `stash`) needs the user's explicit permission.
+- Internal code has no consumers outside this repo: a rename or reshape updates every caller in the
+  same change and deletes the old code, without aliases or shims.
+- Keep source files cohesive and at most 500 lines; extract before growing past that.
+- Shared code moves to `packages/*` only when a second app needs it.
+- Add dependencies with `bun add --exact` in the package that uses them (`bunfig.toml` pins); keep
+  one version per package across the workspace.
 - Env lives in the root `.env.local` (template: `.env.example`). Add every new key to both.
 
 <!-- <shape:start> -->
@@ -72,11 +100,64 @@ Integration tests (`*.it.test.ts`) run only when `TEST_DATABASE_URL` is set; loc
 
 <!-- </shape:api> -->
 
-- Shared code moves to `packages/*` only when a second app needs it.
-- Add dependencies with an exact version (`bunfig.toml` pins); keep one version per package
-  across the workspace.
-- Commits follow Conventional Commits without scope (`feat: ...`), enforced by commitlint.
-- Code and docs in English.
+## Language
+
+Code, identifiers, file names, comments, test names, docs, ADRs, commits and agent instructions
+are English. User-facing copy (UI text, emails, error messages shown to people) is in the
+product's language; keep it as data and name the code around it in English.
+
+## Commits
+
+Conventional per `.commitlintrc.yaml`: types `build|ci|docs|feat|fix|perf|refactor|test`, no
+scope: `feat: x`, never `feat(web): x`. A failed pre-commit hook is fixed in a new commit, not an
+amend.
+
+## Pull Requests
+
+Write the body from `.github/PULL_REQUEST_TEMPLATE.md` and tick a box only with evidence. Attach UI
+screenshots of the real page on creation (`gh pr create --body-file <body.md> --attach
+'./desktop.png#Alt text'`); `gh pr edit` cannot upload. The PR title is the squash commit and CI
+checks it with commitlint.
+
+## Commands and Verification
+
+| Command                              | What                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------- |
+| `bun install`                        | Install; postinstall mirrors skills into `.claude/skills` and links `AGENTS.md`     |
+| `bun run db:up`                      | Start Postgres (docker compose, port from `.env.local`)                             |
+| `bun run db:generate` / `db:migrate` | Create / apply a migration after a schema change                                    |
+| `bun dev`                            | Every app in watch mode                                                             |
+| `bun run storybook`                  | Storybook of the UI and app views                                                   |
+| `bun run doctor`                     | React Doctor scan of every React package; a warning fails it                        |
+| `bun run skills:update`              | Pull every vendored skill's latest version and relink `.claude/skills`              |
+| `bun run verify`                     | Format, lint, doctor, codegen check, typecheck, test, build. The definition of done |
+
+<!-- <shape:api> -->
+
+`bun run codegen` regenerates `apps/api/openapi.json` and `apps/app/src/generated/api.d.ts` from
+the API routes; `verify` fails when they are stale.
+
+<!-- </shape:api> -->
+
+- While iterating, run the cheapest check that exposes the change, e.g.
+  `bunx turbo run typecheck --filter=@acme/db`.
+- Gate before claiming done: `bun run verify` from the root with zero errors and zero warnings.
+  Integration tests (`*.it.test.ts`) run only when `TEST_DATABASE_URL` is set; locally use the
+  `DATABASE_URL` from `.env.local` (each suite creates and drops its own database). CI sets it.
+  Package-local runs are not delivery evidence.
+- UI changes are also validated in the running app (desktop and mobile width, light and dark) and
+  with the Impeccable detector: `.agents/skills/impeccable/scripts/impeccable detect <app>/src`.
+- Edit-time hooks (`.claude/settings.json`, mirrored for Codex in `.codex/hooks.json`):
+  `scripts/hooks/edit-lint.sh` formats and lints the edited file. It fails open; the gate is the
+  enforcement.
+
+## Tests
+
+- Name the invariant, its owning layer and its suite before adding a test; add to an existing
+  suite. Each file opens with `// Invariant: … Owner: …`.
+- Vitest per package under `tests/` (`*.test.ts`); integration suites are `*.it.test.ts`, gated
+  by `TEST_DATABASE_URL`, with a disposable database from `@acme/db/testing`.
+- Mocks only at I/O boundaries. No tests that freeze copy, CSS classes, markup or generated output.
 
 ## Storybook
 
@@ -95,9 +176,11 @@ reads the `.claude/skills` symlinks); origins are in `skills-lock.json`.
 | React components, hooks, state                   | `react`, `vercel-react-best-practices`, `vercel-composition-patterns`            |
 | Routes, loaders, Query, server functions, forms  | `tanstack`                                                                       |
 | Feature modules (adapters, Query hooks, exports) | `app-renderer-systems`                                                           |
+| Client state shared across components            | `xstate-store`                                                                   |
 | Any visible UI: screen, component, UI review     | `impeccable`, `ui-craft` (+ `better-*` for the dimension)                        |
 | Tailwind classes, `@theme`, tokens               | `tailwindcss`                                                                    |
 | Components in `packages/ui` (shadcn, ReUI)       | `shadcn`                                                                         |
+| Brand and provider logos                         | `tech-logos`                                                                     |
 | Stories and Storybook tests                      | `storybook-stories`                                                              |
 | Schemas, validation, advanced types              | `zod`, `typescript-advanced`                                                     |
 | Schema change, migration, backfill               | `drizzle-safe-migrations`                                                        |
@@ -105,6 +188,7 @@ reads the `.claude/skills` symlinks); origins are in `skills-lock.json`.
 | React Doctor scan, triage or rule tuning         | `react-doctor`                                                                   |
 | Slow page, bundle, query or Core Web Vitals      | `performance-optimization`                                                       |
 | Turborepo tasks, caching, new package            | `turborepo`                                                                      |
+| Dependency upgrades                              | `deps-update`                                                                    |
 | Bug or unexpected behavior                       | `systematic-debugging`, `no-workarounds`                                         |
 | Domain terms, glossary, ADRs, bounded contexts   | `domain-modeling`, `ddd-master`                                                  |
 | Module boundaries and interfaces                 | `codebase-design`, `improve-codebase-architecture`                               |
@@ -114,7 +198,7 @@ reads the `.claude/skills` symlinks); origins are in `skills-lock.json`.
 | Work bigger than one session                     | `wayfinder`                                                                      |
 | QA plans and dogfooding through the UI           | `qa-report`, `qa-execution`                                                      |
 | Handing work to another agent                    | `handoff`, `to-prompt`                                                           |
-| Library or API docs                              | `context7`                                                                       |
+| Library or API docs, web research                | `context7`, `exa-search`                                                         |
 | Diagrams                                         | `mermaid-diagrams`                                                               |
 | Rebasing or cleaning history                     | `git-rebase`                                                                     |
 | Claiming a task complete                         | `deslop`                                                                         |
@@ -130,12 +214,19 @@ API routes, middleware and the OpenAPI contract in `apps/api`: `hono`.
 
 - Skills are vendored: `.agents/skills` is committed and `skills-lock.json` records each one's
   source and hash. Every skill comes from a public repository through the
-  [`skills`](https://github.com/vercel-labs/skills) CLI.
-- Add one: `npx skills add <owner/repo> --skill <name> -a claude-code -a codex -y` (repeat
-  `--skill` for several from the same source). Update: `npx skills update -p -y`. Remove:
-  `npx skills remove <name> -y`. Restore from the lock: `npx skills experimental_install`.
-  Commit the skill folder and the lock together.
+  [`skills`](https://github.com/vercel-labs/skills) CLI, and a new project pulls each one's latest
+  version when it is created.
+- Update all: `bun run skills:update`. Add one:
+  `npx skills add <owner/repo> --skill <name> -a claude-code -a codex -y` (repeat `--skill` for
+  several from the same source). Remove: `npx skills remove <name> -y`. Restore from the lock:
+  `npx skills experimental_install`. Commit the skill folder and the lock together.
 - Never hand-edit a vendored skill: the next update overwrites it and the hash stops matching.
   Put project rules here or in a skill of the project's own.
 - Optional modules (jobs, email, error reporting, cron) live in `recipes/*.md`. Apply one by
   following its steps, then run `bun run verify`.
+
+## Pointers
+
+- Decisions: `docs/adr/README.md` (conventions; record one with `domain-modeling`). Domain terms:
+  `GLOSSARY.md`, created by `domain-modeling` on the first term worth fixing.
+- Storybook: `docs/design/storybook.md`. UI library: `packages/ui/README.md`.

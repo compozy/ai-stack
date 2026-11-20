@@ -12,10 +12,29 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: "0"
+
 jobs:
-  verify:
+  workflow-lint:
+    name: Workflow lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+      - name: zizmor
+        run: pipx run zizmor==1.31.1 --offline --format=github .github
+
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -30,27 +49,34 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     env:
+      # Integration suites create and drop their own databases on this server.
       TEST_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
-      HUSKY: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version-file: .node-version }
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version-file: .bun-version }
-      - run: bun install --frozen-lockfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          turbo-key: verify
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
       # Chromium for the Storybook browser tests in each app's `test`.
       # <shape:start>
-      - run: bunx playwright install --with-deps chromium
+      - name: Install Chromium (web)
         working-directory: apps/web
+        run: bunx --no-install playwright install --with-deps chromium
       # </shape:start>
       # <shape:api>
-      - run: bunx playwright install --with-deps chromium
+      - name: Install Chromium (app)
         working-directory: apps/app
+        run: bunx --no-install playwright install --with-deps chromium
       # </shape:api>
       - run: bun run verify
 
   react-doctor:
+    name: React Doctor
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -58,16 +84,12 @@ jobs:
       pull-requests: write
       issues: write
       statuses: write
-    env:
-      HUSKY: "0"
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
-        with: { node-version-file: .node-version }
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version-file: .bun-version }
-      - run: bun install --frozen-lockfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
       # The default `version: latest` runs the react-doctor pinned in bun.lock.
       - uses: millionco/react-doctor@695e46eee203a5d1855020191aa7e9c010a1250e # v2.4.0
         with:

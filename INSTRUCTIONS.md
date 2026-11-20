@@ -26,8 +26,11 @@ bun <template>/scripts/create.ts <name> --shape start|api
 The script copies the template, drops the other shape, writes `.env.local` (fresh
 `BETTER_AUTH_SECRET`, a free Postgres port), carries over the vendored skills in
 `.agents/skills` with `skills-lock.json` (the `start` shape removes `hono` with
-`npx skills remove`), runs `bun install`, formats and makes the first commit. Flags:
-`--dir <path>`, `--no-skills` (copy no vendored skill and no lock), `--no-install`.
+`npx skills remove`), updates every skill to its latest version (`npx skills update`), runs
+`bun install`, formats and makes the first commit. Flags: `--dir <path>`, `--no-skills` (copy no
+vendored skill and no lock), `--frozen-skills` (skip the update and keep the template's
+versions), `--no-install`. A failed update is a warning, not a failure: the project keeps the
+template's copies and `bun run skills:update` retries it.
 
 ## 3. Prove it runs
 
@@ -47,7 +50,8 @@ see the home page greet you. Stop here and report if any step fails; do not patc
   each one by following its steps, then run `bun run verify`. Each recipe lists the skills it
   needs that the project does not vendor yet (`inngest`, `sentry-cli`); install them with
   `npx skills add pedronauck/skills --skill <name> -a claude-code -a codex -y` and commit the
-  folder with the lock.
+  folder with the lock. `bun run skills:update` brings every vendored skill to its latest
+  version.
 - Replace the neutral tokens in `packages/ui/src/styles/theme.css` with the brand (keep AA
   contrast: the Storybook a11y tests check it). `packages/ui` already holds the shadcn and
   ReUI components; more come from `bunx shadcn add <name>` or `bunx shadcn add @reui/<name>` in
@@ -66,6 +70,8 @@ are outward-facing: confirm with the user before each one.
 - The template must always pass its own gate: `bun run verify` here, and the `Template` workflow,
   which scaffolds both shapes and runs `verify` inside each. Storybook runs web on 6006 and app
   on 6007.
+- Refresh the template's skills before a release with `bun run skills:update` and commit the
+  changed folders with the lock, so `--frozen-skills` projects and offline scaffolds are recent.
 - Bump pins in one place per package and keep the workspace on a single version of each.
 - Skills are vendored in `.agents/skills` and pinned in `skills-lock.json`; manage them only with
   the skills CLI (`npx skills add|update|remove`, `-a claude-code -a codex -y`) and never edit a
@@ -74,13 +80,14 @@ are outward-facing: confirm with the user before each one.
   `create.ts` copies vendored files byte for byte so the hashes keep matching.
 - Skills in the template, by source:
 
-  - [`pedronauck/skills`](https://github.com/pedronauck/skills) (31): `react`, `tanstack`, `tailwindcss`, `shadcn`, `zod`, `vitest`, `typescript-advanced`, `drizzle-safe-migrations`, `hono` (api shape only), `storybook-stories`, `app-renderer-systems`, `ui-craft`, `vercel-react-best-practices`, `vercel-composition-patterns`, `testing-boss`, `no-workarounds`, `deslop`, `systematic-debugging`, `context7`, `git-rebase`, `agent-exploration`, `to-prompt`, `spec-peer-review`, `qa-execution`, `qa-report`, `ddd-master`, `writing-agents-md`, `writing-skills`, `architectural-analysis`, `refactoring-analysis`, `mermaid-diagrams`
+  - [`pedronauck/skills`](https://github.com/pedronauck/skills) (34): `react`, `tanstack`, `tailwindcss`, `shadcn`, `zod`, `vitest`, `typescript-advanced`, `drizzle-safe-migrations`, `hono` (api shape only), `storybook-stories`, `app-renderer-systems`, `xstate-store`, `ui-craft`, `tech-logos`, `vercel-react-best-practices`, `vercel-composition-patterns`, `testing-boss`, `no-workarounds`, `deslop`, `systematic-debugging`, `context7`, `git-rebase`, `deps-update`, `agent-exploration`, `to-prompt`, `spec-peer-review`, `qa-execution`, `qa-report`, `ddd-master`, `writing-agents-md`, `writing-skills`, `architectural-analysis`, `refactoring-analysis`, `mermaid-diagrams`
   - [`mattpocock/skills`](https://github.com/mattpocock/skills) (8): `grill-me`, `grilling`, `handoff`, `codebase-design`, `domain-modeling`, `grill-with-docs`, `improve-codebase-architecture`, `wayfinder`
   - [`jakubkrehel/skills`](https://github.com/jakubkrehel/skills) (5): `better-accessibility`, `better-colors`, `better-layout`, `better-typography`, `better-ui`
   - [`pbakaus/impeccable`](https://github.com/pbakaus/impeccable): `impeccable`
   - [`vercel/turborepo`](https://github.com/vercel/turborepo): `turborepo`
   - [`millionco/react-doctor`](https://github.com/millionco/react-doctor): `react-doctor`
   - [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills): `performance-optimization`
+  - [`exa-labs/agent-skills`](https://github.com/exa-labs/agent-skills): `exa-search`
 
 - Files that must not reach projects are listed in `TEMPLATE_ONLY` in `scripts/create.ts`.
 - Shape-specific text in copied files sits between `<shape:start>` / `</shape:start>` (or `api`)

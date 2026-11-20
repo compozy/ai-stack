@@ -23,7 +23,8 @@
         "db:generate": "bun run --cwd packages/db db:generate",
         "db:migrate": "bun run --cwd packages/db db:migrate",
         "prepare": "husky",
-        "postinstall": "bash scripts/postinstall.sh"
+        "postinstall": "bash scripts/postinstall.sh",
+        "skills:update": "npx -y skills@1.9.0 update -p -y && bash scripts/postinstall.sh"
     },
     "devDependencies": {
         "@commitlint/cli": "21.2.4",

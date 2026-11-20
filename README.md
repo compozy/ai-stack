@@ -43,9 +43,11 @@ bun dev
 
 `create.ts` copies the template without the other shape, renames the `@acme/*` scope to your
 project name, writes `.env.local` (fresh `BETTER_AUTH_SECRET`, a free Postgres port), runs
-`bun install` and makes the first commit. The skills come with the copy; the `start` shape
-removes `hono` through the skills CLI. Flags: `--dir <path>`, `--no-skills` (leave out every
-vendored skill and the lock), `--no-install`.
+`bun install` and makes the first commit. The skills come with the copy and are then updated to
+their latest version with the skills CLI, so a new project never starts behind the template; the
+`start` shape also removes `hono`. Flags: `--dir <path>`, `--no-skills` (leave out every vendored
+skill and the lock), `--frozen-skills` (keep the template's versions, e.g. offline),
+`--no-install`.
 
 The `start` app runs on <http://localhost:3000>; in the `api` shape the API runs on port 3001 and
 the SPA on <http://localhost:3002>.
@@ -55,19 +57,22 @@ the SPA on <http://localhost:3002>.
 Skills are committed in `.agents/skills` (Claude Code reads them through `.claude/skills`
 symlinks that `bun install` creates) and managed with the
 [`skills`](https://github.com/vercel-labs/skills) CLI; `skills-lock.json` records the source and
-hash of each one. Every generated project starts with the same set.
+hash of each one. Every generated project starts with the same set (52), each at its latest
+version: `create.ts` runs `npx skills update` after copying them, and keeps the template's copies
+when a source cannot be reached.
 
-- [`pedronauck/skills`](https://github.com/pedronauck/skills) (31): `react`, `tanstack`, `tailwindcss`, `shadcn`, `zod`, `vitest`, `typescript-advanced`, `drizzle-safe-migrations`, `hono` (api shape only), `storybook-stories`, `app-renderer-systems`, `ui-craft`, `vercel-react-best-practices`, `vercel-composition-patterns`, `testing-boss`, `no-workarounds`, `deslop`, `systematic-debugging`, `context7`, `git-rebase`, `agent-exploration`, `to-prompt`, `spec-peer-review`, `qa-execution`, `qa-report`, `ddd-master`, `writing-agents-md`, `writing-skills`, `architectural-analysis`, `refactoring-analysis`, `mermaid-diagrams`
+- [`pedronauck/skills`](https://github.com/pedronauck/skills) (34): `react`, `tanstack`, `tailwindcss`, `shadcn`, `zod`, `vitest`, `typescript-advanced`, `drizzle-safe-migrations`, `hono` (api shape only), `storybook-stories`, `app-renderer-systems`, `xstate-store`, `ui-craft`, `tech-logos`, `vercel-react-best-practices`, `vercel-composition-patterns`, `testing-boss`, `no-workarounds`, `deslop`, `systematic-debugging`, `context7`, `git-rebase`, `deps-update`, `agent-exploration`, `to-prompt`, `spec-peer-review`, `qa-execution`, `qa-report`, `ddd-master`, `writing-agents-md`, `writing-skills`, `architectural-analysis`, `refactoring-analysis`, `mermaid-diagrams`
 - [`mattpocock/skills`](https://github.com/mattpocock/skills) (8): `grill-me`, `grilling`, `handoff`, `codebase-design`, `domain-modeling`, `grill-with-docs`, `improve-codebase-architecture`, `wayfinder`
 - [`jakubkrehel/skills`](https://github.com/jakubkrehel/skills) (5): `better-accessibility`, `better-colors`, `better-layout`, `better-typography`, `better-ui`
 - [`pbakaus/impeccable`](https://github.com/pbakaus/impeccable): `impeccable`
 - [`vercel/turborepo`](https://github.com/vercel/turborepo): `turborepo`
 - [`millionco/react-doctor`](https://github.com/millionco/react-doctor): `react-doctor`
 - [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills): `performance-optimization`
+- [`exa-labs/agent-skills`](https://github.com/exa-labs/agent-skills): `exa-search`
 
 ```bash
 npx skills add <owner/repo> --skill <name> -a claude-code -a codex -y   # add
-npx skills update -p -y                                                 # update all
+bun run skills:update                                                   # update all, relink
 npx skills experimental_install                                         # restore from the lock
 ```
 

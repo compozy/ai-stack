@@ -1,0 +1,6 @@
+# zizmor configuration (CI "Workflow lint" job).
+rules:
+  # Local composite actions use the documented `./.github/actions/<name>` path; actionlint
+  # validates them.
+  self-repository:
+    disable: true

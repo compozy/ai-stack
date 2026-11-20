@@ -33,3 +33,9 @@ storybook-static/
 
 # platform binaries some vendored skills download at runtime (impeccable's engine)
 .agents/skills/*/scripts/bin/
+
+# Compozy local runtime state (registered per machine, never versioned)
+.compozy/tasks/
+.compozy/*.db
+.compozy/*.db-*
+.compozy/workspace.toml

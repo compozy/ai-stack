@@ -7,14 +7,16 @@ import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 // Skills are vendored in `.agents/skills` (lock: `skills-lock.json`) and copied verbatim; each shape
-// removes the ones it has no use for through the skills CLI, so the lock stays consistent.
+// removes the ones it has no use for through the skills CLI, so the lock stays consistent. The
+// vendored copies are a snapshot of the template's last commit, so the project then pulls every
+// skill's latest version from its source (`--frozen-skills` keeps the snapshot).
 const SHAPES = {
   start: { drop: ["apps/api", "apps/app"], removeSkills: ["hono"] },
   api: { drop: ["apps/web"], removeSkills: [] },
 } as const;
 type Shape = keyof typeof SHAPES;
 
-const SKILLS_CLI = "skills@1.8.1";
+const SKILLS_CLI = "skills@1.9.0";
 const SKILLS_DIR = ".agents/skills/";
 const SKILLS_LOCK = "skills-lock.json";
 const TEMPLATE_ONLY = [
@@ -31,6 +33,7 @@ const { values, positionals } = parseArgs({
     shape: { type: "string", default: "start" },
     dir: { type: "string" },
     "no-skills": { type: "boolean", default: false },
+    "frozen-skills": { type: "boolean", default: false },
     "no-install": { type: "boolean", default: false },
   },
 });
@@ -39,7 +42,7 @@ const name = positionals[0] ?? "";
 const shape = values.shape as Shape;
 if (!name || !/^[a-z][a-z0-9-]*$/.test(name) || !(shape in SHAPES)) {
   console.error("Usage: bun scripts/create.ts <name> [--shape start|api] [--dir <path>]");
-  console.error("       [--no-skills] [--no-install]");
+  console.error("       [--no-skills | --frozen-skills] [--no-install]");
   process.exit(1);
 }
 
@@ -53,14 +56,16 @@ const title = name.replace(
 const other = Object.keys(SHAPES).filter(s => s !== shape);
 const dropped = [...TEMPLATE_ONLY, ...SHAPES[shape].drop];
 
-const run = (cmd: string[], env: Record<string, string> = {}) => {
+const spawn = (cmd: string[], env: Record<string, string> = {}) => {
   console.log(`$ ${cmd.join(" ")}`);
-  const proc = Bun.spawnSync(cmd, {
+  return Bun.spawnSync(cmd, {
     cwd: target,
     stdio: ["inherit", "inherit", "inherit"],
     env: { ...process.env, ...env },
-  });
-  if (proc.exitCode !== 0) throw new Error(`Failed: ${cmd.join(" ")}`);
+  }).exitCode;
+};
+const run = (cmd: string[], env: Record<string, string> = {}) => {
+  if (spawn(cmd, env) !== 0) throw new Error(`Failed: ${cmd.join(" ")}`);
 };
 
 /** Removes `<shape:x>` … `</shape:x>` blocks of other shapes and the markers of this one. */
@@ -150,9 +155,14 @@ writeFileSync(join(target, ".env.local"), env);
 
 // 3. Git, shape-only skills, dependencies, formatting and the first commit.
 run(["git", "init", "-q"]);
-const removeSkills = values["no-skills"] ? [] : SHAPES[shape].removeSkills;
-if (removeSkills.length > 0) {
-  run(["npx", "-y", SKILLS_CLI, "remove", ...removeSkills, "-y"]);
+if (!values["no-skills"]) {
+  const removeSkills = SHAPES[shape].removeSkills;
+  if (removeSkills.length > 0) run(["npx", "-y", SKILLS_CLI, "remove", ...removeSkills, "-y"]);
+  // An unreachable source keeps the vendored snapshot instead of failing the whole scaffold.
+  if (!values["frozen-skills"] && spawn(["npx", "-y", SKILLS_CLI, "update", "-p", "-y"]) !== 0)
+    console.warn(
+      "Skills update failed: kept the template's versions. Retry: bun run skills:update"
+    );
 }
 if (!values["no-install"]) run(["bun", "install"]);
 if (!values["no-install"]) run(["bun", "run", "format"]);
