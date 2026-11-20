@@ -1,0 +1,36 @@
+name: Set up Chromium
+description: Restore and install the Chromium headless shell for Storybook tests.
+inputs:
+  directory:
+    description: Workspace with the installed Playwright dependency.
+    required: true
+  save-cache:
+    description: Allow this job to publish the browser cache on default-branch pushes.
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - id: playwright
+      shell: bash
+      working-directory: ${{ inputs.directory }}
+      run: |
+        version=$(bunx --no-install playwright --version)
+        echo "version=${version#Version }" >> "$GITHUB_OUTPUT"
+    - id: browser-cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ runner.arch }}-chromium-shell-${{ steps.playwright.outputs.version }}
+    # GitHub's Ubuntu runner image provides Chrome's system libraries.
+    - if: steps.browser-cache.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: ${{ inputs.directory }}
+      run: bunx --no-install playwright install --only-shell chromium
+    - if: >-
+        inputs.save-cache == 'true' &&
+        github.event_name == 'push' && github.ref_name == github.event.repository.default_branch &&
+        steps.browser-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ steps.browser-cache.outputs.cache-primary-key }}

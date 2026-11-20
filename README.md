@@ -97,8 +97,11 @@ the chosen shape are copied.
 ## Working on the template
 
 `bun install`, `bun run db:up`, `bun run db:migrate`, then `bun run verify`. Both shapes live side
-by side here (web on 3000, api on 3001, app on 3002). The `Template` workflow scaffolds each
-shape and runs `verify` inside it.
+by side here (web on 3000, api on 3001, app on 3002). The `CI` workflow runs the checks from
+`bun run verify` across parallel jobs, with PostgreSQL and Chromium in the test job. The
+`CI gate` requires every job to pass. The `Template` workflow scaffolds each shape, lints
+its generated CI workflow and runs `bun run verify` inside the project. Each generated
+project receives the `CI` workflow and its shared setup actions.
 
 ## License
 

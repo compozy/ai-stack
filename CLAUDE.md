@@ -51,7 +51,8 @@ Read the surface instructions before working there.
 - Auth: Better Auth (email + password) with the Drizzle adapter. Validation: zod 4.
 - React Compiler is on: never write `memo`, `useMemo` or `useCallback`.
 - React Doctor: `doctor.config.mjs` in each package holds its exceptions, each with its reason;
-  `.oxlintrc.json` runs its main rules at edit time; CI comments on PRs and sets a commit status.
+  `.oxlintrc.json` runs its main rules at edit time. The blocking CI job reports a commit status
+  and posts PR feedback where GitHub grants write access.
 
 ## Tripwires
 
@@ -150,6 +151,11 @@ the API routes; `verify` fails when they are stale.
 - Edit-time hooks (`.claude/settings.json`, mirrored for Codex in `.codex/hooks.json`):
   `scripts/hooks/edit-lint.sh` formats and lints the edited file. It fails open; the gate is the
   enforcement.
+
+The GitHub Actions `CI gate` requires workflow lint, quality, test and React Doctor jobs to
+pass. Together they run every check in `bun run verify`. The test job starts PostgreSQL and
+installs headless Chromium. CI restores Bun and Chromium caches and publishes them on
+default-branch pushes.
 
 ## Tests
 

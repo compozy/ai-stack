@@ -9,11 +9,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  HUSKY: "0"
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   workflow-lint:
@@ -31,10 +28,21 @@ jobs:
       - name: zizmor
         run: pipx run zizmor==1.31.1 --offline --format=github .github
 
-  verify:
-    name: Verify
+  quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bunx --no-install turbo run codegen:check typecheck build
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17-alpine
@@ -51,29 +59,25 @@ jobs:
     env:
       # Integration suites create and drop their own databases on this server.
       TEST_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      # <shape:start>
+      PLAYWRIGHT_START_DIR: apps/web
+      # </shape:start>
+      # <shape:api>
+      PLAYWRIGHT_API_DIR: apps/app
+      # </shape:api>
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # One publisher for the caches shared by CI and Template.
       - uses: ./.github/actions/setup
         with:
-          turbo-key: verify
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+          save-cache: "true"
+      - uses: ./.github/actions/chromium
         with:
-          path: ~/.cache/ms-playwright
-          key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-      # Chromium for the Storybook browser tests in each app's `test`.
-      # <shape:start>
-      - name: Install Chromium (web)
-        working-directory: apps/web
-        run: bunx --no-install playwright install --with-deps chromium
-      # </shape:start>
-      # <shape:api>
-      - name: Install Chromium (app)
-        working-directory: apps/app
-        run: bunx --no-install playwright install --with-deps chromium
-      # </shape:api>
-      - run: bun run verify
+          directory: ${{ env.PLAYWRIGHT_START_DIR || env.PLAYWRIGHT_API_DIR }}
+          save-cache: "true"
+      - run: bun run test
 
   react-doctor:
     name: React Doctor
@@ -87,11 +91,49 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      # The default `version: latest` runs the react-doctor pinned in bun.lock.
-      - uses: millionco/react-doctor@695e46eee203a5d1855020191aa7e9c010a1250e # v2.4.0
+      - id: setup
+        uses: ./.github/actions/setup
+      # Require the installed CLI so the action uses the lockfile version and skips its own caches.
+      - if: github.event_name == 'pull_request'
+        run: test -x node_modules/.bin/react-doctor
+      - if: github.event_name == 'pull_request'
+        uses: millionco/react-doctor@695e46eee203a5d1855020191aa7e9c010a1250e # v2.4.0
         with:
+          node-version: ${{ steps.setup.outputs.node-version }}
           scope: full
           blocking: warning
+      # The upstream action applies its blocking threshold to pull requests only.
+      - id: scan
+        if: github.event_name != 'pull_request'
+        run: bun run doctor
+      - name: Publish React Doctor commit status
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        with:
+          script: |
+            const passed = process.env.SCAN_OUTCOME === "success";
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: context.sha,
+              state: passed ? "success" : "failure",
+              context: "React Doctor",
+              description: passed ? "Full scan passed" : "Full scan failed",
+              target_url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${context.runId}`,
+            });
+
+  gate:
+    name: CI gate
+    needs: [workflow-lint, quality, test, react-doctor]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all CI jobs to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          jq 'map_values(.result)' <<< "$RESULTS"
+          jq -e 'length > 0 and all(.[]; .result == "success")' <<< "$RESULTS"
